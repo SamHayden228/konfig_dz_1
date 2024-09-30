@@ -13,7 +13,7 @@ class UnixConsoleApp:
         # Стилизация окна как Unix-консоли
 
         # Приветственное сообщение
-        self.defPromt=f"localhost:~#"
+        self.defPromt=f"user:~#"
         self.prompt = self.defPromt
 
 
@@ -54,7 +54,7 @@ class UnixConsoleApp:
         elif command_line.split()[0] == "cd":
             if len(command_line.split())==1:
                 self.curDir=self.defDir
-                self.prompt = f"localhost:~#"
+                self.prompt = f"user:~#"
 
             else:
 
@@ -67,7 +67,7 @@ class UnixConsoleApp:
                 else:
                     self.curDir=d
 
-                    self.prompt=f"localhost:{self.curDir[self.curDir.find('/',self.curDir.find('/')+1) + 1:]}#"
+                    self.prompt=f"user:{self.curDir[self.curDir.find('/',self.curDir.find('/')+1) + 1:]}#"
 
         elif command_line.split()[0] == "mv":
             if (len(command_line.split())>2):
