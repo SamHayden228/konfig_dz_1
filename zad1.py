@@ -87,6 +87,7 @@ class UnixConsoleApp:
 
 
                         if os.path.exists(p) and not os.path.exists(f"{d}/{file}"):
+
                             shutil.move(p,d)
                 else:
 
@@ -95,15 +96,16 @@ class UnixConsoleApp:
 
 
                     if os.path.exists(p) and not os.path.exists(f"{self.defDir}/{command_line.split()[1]}"):
+
                         shutil.move(p,self.defDir)
 
         elif command_line.split()[0] == "tac":
             if (len(command_line.split())>1):
                 d = self.getDir(command_line.split()[1])
-                if not (os.path.exists(d)):
-                    print( f"No such directive")
+                if not ((d) ):
+                    print( f"No such file")
                 else:
-                    if (os.path.isfile(d)):
+                    if ( (d) and os.path.isfile(d)):
                         res=""
                         f = open(d)
                         mas = []
@@ -126,36 +128,37 @@ class UnixConsoleApp:
 
 
 # Создаем главное окно приложения
+if __name__ == "__main__":
+    from pathlib import Path
 
-from pathlib import Path
-
-script_path = str(Path( __file__ ).absolute())
+    script_path = str(Path( __file__ ).absolute())
 
 
-if not(os.path.exists("papka")):
-    os.mkdir("papka")
-if os.path.exists("Konfig.ini"):
-    f=open("Konfig.ini")
-else:
-    f=open(script_path[:-7]+"Konfig.ini")
-file=f.readline()
+    if not(os.path.exists("papka")):
+        os.mkdir("papka")
+    if os.path.exists("Konfig.ini"):
+        f=open("Konfig.ini")
+    else:
+        f=open(script_path[:-7]+"Konfig.ini")
+    file=f.readline()
 
-with tar.open(file, 'r') as t:
-    t.extractall("papka/")
-    app = UnixConsoleApp(f"papka/{t.getnames()[0]}" )
-    t.close()
+    with tar.open(file, 'r') as t:
+        t.extractall("papka/")
+        app = UnixConsoleApp(f"papka/{t.getnames()[0]}" )
+        print(app.defDir)
+        t.close()
 
-# Запускаем главный цикл приложения
-while (True):
-    print(app.prompt, end=" ")
-    inp = input()
-    if inp.split()[0] == "exit":
-        break
-    app.process_command(inp)
-with tar.open(file, 'w') as t:
-    for item in os.listdir("papka/"):
-        item_path = os.path.join("papka/", item)
-        # Добавляем каждый элемент в tar архив
-        t.add(item_path, arcname=item)
-shutil.rmtree("papka")
+    # Запускаем главный цикл приложения
+    while (True):
+        print(app.prompt, end=" ")
+        inp = input()
+        if inp.split()[0] == "exit":
+            break
+        app.process_command(inp)
+    with tar.open(file, 'w') as t:
+        for item in os.listdir("papka/"):
+            item_path = os.path.join("papka/", item)
+            # Добавляем каждый элемент в tar архив
+            t.add(item_path, arcname=item)
+    shutil.rmtree("papka")
 
