@@ -127,13 +127,17 @@ class UnixConsoleApp:
 
 # Создаем главное окно приложения
 
+from pathlib import Path
+
+script_path = str(Path( __file__ ).absolute())
+
 
 if not(os.path.exists("papka")):
     os.mkdir("papka")
 if os.path.exists("Konfig.ini"):
     f=open("Konfig.ini")
 else:
-    f=open("C:/Users/vlaso_n8/PycharmProjects/pythonProject/Konfig.ini")
+    f=open(script_path[:-7]+"Konfig.ini")
 file=f.readline()
 
 with tar.open(file, 'r') as t:
