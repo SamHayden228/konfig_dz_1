@@ -1,4 +1,6 @@
+import time
 import unittest
+import tkinter as tk
 from unittest.mock import patch
 import io
 import os
@@ -7,27 +9,33 @@ from zad1 import UnixConsoleApp
 class TestUnixConsoleApp(unittest.TestCase):
 
     def setUp(self):
-        self.app = UnixConsoleApp("/papka/shape")  # Инициализация приложения
+        self.root = tk.Tk()
+        self.app = UnixConsoleApp(self.root,"/papka/shape")
 
-    @patch('sys.stdout', new_callable=io.StringIO)
-    def test_ls_command_no_arguments(self, mock_stdout):
-        """Тестируем команду 'ls' без аргументов"""
-        with patch('os.listdir', return_value=['pack']):
-            self.app.process_command('ls')
-            output = mock_stdout.getvalue().strip()
-            print(output)
-            self.assertIn("pack", output)
 
-    @patch('sys.stdout', new_callable=io.StringIO)
-    def test_ls_command_with_directory(self, mock_stdout):
-        """Тестируем команду 'ls' с аргументом каталога"""
-        with patch('os.listdir', return_value=['ewf.py file.txt file2.txt pack2']):
-            self.app.process_command('ls pack')
-            output = mock_stdout.getvalue().strip()
-            self.assertIn("ewf.py file.txt file2.txt pack2", output)
+    def tearDown(self):
+        # Закрываем корневое окно после тестов
+        self.root.destroy()
 
-    @patch('sys.stdout', new_callable=io.StringIO)
-    def test_cd_command_no_arguments(self, mock_stdout):
+
+    def test_ls_command_no_arguments(self):
+        # Выполняем команду `ls` в текущей директории
+        self.app.process_command("ls")
+
+        self.assertIn("pack", self.app.res)
+
+
+
+    def test_ls_command_with_directory(self):
+        # Выполняем команду `ls` в текущей директории
+        self.app.process_command("ls pack")
+
+        # Проверяем, что в выводе присутствует содержимое директории
+
+        self.assertIn('ewf.py file.txt file2.txt file4.txt file5.txt pack2 ', self.app.res)
+
+
+    def test_cd_command_no_arguments(self):
         """Тестируем команду 'cd' без аргументов (возврат в дефолтную директорию)"""
         self.app.curDir = "/papka/shape/pack"
         self.app.process_command('cd')
@@ -39,8 +47,8 @@ class TestUnixConsoleApp(unittest.TestCase):
         """Тестируем команду 'cd' с недопустимым каталогом"""
         with patch('os.path.exists', return_value=False):
             self.app.process_command('cd ppp')
-            output = mock_stdout.getvalue().strip()
-            self.assertIn("No such directory", output)
+
+            self.assertIn("No such directory", self.app.res)
 
     @patch('sys.stdout', new_callable=io.StringIO)
     @patch('os.path.exists', return_value=True)
@@ -61,17 +69,17 @@ class TestUnixConsoleApp(unittest.TestCase):
     def test_tac_command_valid_file(self, mock_stdout):
         """Тестируем команду 'tac' с допустимым файлом"""
         with patch('builtins.open', unittest.mock.mock_open(read_data="2) tut tozhe\n1) tut cho-to napisano")):
-            self.app.process_command('tac pack/file.txt')
+            self.app.process_command('tac pack/file5.txt')
             output = mock_stdout.getvalue().strip()
-            self.assertIn("2) tut tozhe\n1) tut cho-to napisano", output)
+            self.assertIn('\n1) tut cho-to napisano\n2) tut tozhe\n',  self.app.res)
 
     @patch('sys.stdout', new_callable=io.StringIO)
     def test_tac_command_invalid_file(self, mock_stdout):
         """Тестируем команду 'tac' с недопустимым файлом"""
         with patch('os.path.exists', return_value=False):
             self.app.process_command('tac non_existing_file.txt')
-            output = mock_stdout.getvalue().strip()
-            self.assertIn("No such file", output)
+
+            self.assertIn("No such file", self.app.res)
 
 if __name__ == '__main__':
     unittest.main()
