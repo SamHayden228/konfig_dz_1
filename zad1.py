@@ -2,7 +2,10 @@ import tkinter as tk
 import tarfile as tar
 import os
 import shutil
+from pathlib import Path
 from os.path import curdir
+
+from click import command
 
 
 # путь относительно текущего скрипта
@@ -14,7 +17,7 @@ class UnixConsoleApp:
         self.root.title("Console")
         self.defDir=defDir
         self.curDir=self.defDir
-
+        self.res=""
 
         # Приветственное сообщение
         self.defPromt=f"user:~#"
@@ -22,7 +25,7 @@ class UnixConsoleApp:
 
         # Стилизация окна как Unix-консоли
         self.text_area = tk.Text(root, bg="black", fg="white", insertbackground="green",
-                                 wrap=tk.WORD, width=80, height=24, font=("Courier", 12))
+                                 wrap=tk.WORD, width=80, height=24)
         self.text_area.pack(expand=True, fill='both')
 
         # Устанавливаем ввод текста доступным
@@ -38,7 +41,9 @@ class UnixConsoleApp:
         # Устанавливаем фокус на текстовое поле для ввода
         self.text_area.focus_set()
 
-
+    def printCommand(self,command):
+        self.text_area.insert(tk.END, "ls\n")
+        self.process_command()
     def append_prompt(self):
         """Добавляем приглашение командной строки"""
         self.text_area.insert(tk.END, self.prompt)
@@ -55,40 +60,46 @@ class UnixConsoleApp:
     def getDir(self, file):
         cur = self.curDir.split()
         de = self.defDir.split()
-
-        if os.path.exists(f"{self.curDir}/{file}"):
-            return f"{self.curDir}/{file}"
-        if os.path.exists(f"{self.defDir}/{file}"):
-            return f"{self.defDir}/{file}"
+        script_path = str(Path(__file__).absolute())
+        if os.path.exists(f"{script_path[:-7]}{self.curDir}/{file}"):
+            return f"{script_path[:-7]}{self.curDir}/{file}".replace("\/",'/')
+        if os.path.exists(f"{script_path[:-7]}{self.defDir}/{file}"):
+            return f"{script_path[:-7]}{self.defDir}/{file}".replace("\/",'/')
         return None
 
-    def process_command(self, event=None):
+    def process_command(self, command=""):
         """Обработка команды после нажатия Enter"""
+        script_path = str(Path(__file__).absolute())
         # Получаем текущую строку с командой
-        command_line = self.text_area.get(f"{self.text_area.index(tk.INSERT).split('.')[0]}.{len(self.prompt)}",
-                                          tk.END).strip()
+        #command_line = self.text_area.get(f"{self.text_area.index(tk.INSERT).split('.')[0]}.{len(self.prompt)}",
+                                          #tk.END).strip()
+        command_line=self.get_console_output().replace(self.prompt,"")
 
-
-
+        if command_line=="":
+            command_line=command
         # Выполняем команду
         if command_line.split()[0] == "exit":
             self.root.quit()
         elif command_line.split()[0] == "ls":
-            res=""
-            d = self.curDir if len(command_line.split()) == 1 else (self.getDir(command_line.split()[1]))
+            self.res=""
+
+            d = f"{script_path[:-7]}{self.curDir}" if len(command_line.split()) == 1 else (self.getDir(command_line.split()[1]))
 
             try:
                 if (d):
+
                     for item in os.listdir(d):
-                        res += item + " "
+                        self.res += item + " "
                 # Добавляем каждый элемент в tar архив
             except Exception as _ex:
                 print(_ex)
                 if not(d):
-                    res="No such directory/file"
+                    self.res="No such directory/file"
                 else:
-                    res=self.curDir.split("/")[-1] if len(command_line.split())==1 else command_line.split()[1].split("/")[-1]
-            self.text_area.insert(tk.END, f"\n{res}\n")
+                    self.res=self.curDir.split("/")[-1] if len(command_line.split())==1 else command_line.split()[1].split("/")[-1]
+            self.text_area.insert(tk.END, f"\n{self.res}\n")
+
+
 
         elif command_line.split()[0] == "cd":
             if len(command_line.split())==1:
@@ -103,12 +114,14 @@ class UnixConsoleApp:
                 if not(d ) or not(os.path.isdir(d)):
 
                     self.text_area.insert(tk.END, f"\nNo such directory\n")
-
+                    self.res="No such directory"
 
                 else:
-                    self.curDir=d
 
-                    self.prompt=f"user:{self.curDir[self.curDir.find('/',self.curDir.find('/')+1) + 1:]}#"
+                    self.curDir=d[d.find(self.defDir):]
+
+                    self.prompt=f"user:{self.curDir[self.curDir.find(self.defDir)+len(self.defDir)+1:]}#"
+
                     self.text_area.insert(tk.END, f"\n")
 
         elif command_line.split()[0] == "mv":
@@ -119,16 +132,18 @@ class UnixConsoleApp:
 
 
                     p = self.getDir(command_line.split()[1])
-
-                    os.rename(p, p[:p.rfind("/")] + "/" + command_line.split()[-1])
+                    t=p.split('/')
+                    os.rename(p, p.replace(t[-1],'')+ command_line.split()[-1])
                 elif (os.path.isdir(d)):
 
                     for file in command_line.split()[1:-1]:
 
                         p = self.getDir(file)
-
-                        if os.path.exists(p) and not os.path.exists(f"{d}/{file}"):
+                        d1=os.path.exists(p)
+                        d2=os.path.exists(f"{d}/{file.split('/')[-1]}")
+                        if d1 and not(d2) :
                             shutil.move(p, d)
+
                 else:
 
                     p = self.getDir(command_line.split()[1])
@@ -138,20 +153,23 @@ class UnixConsoleApp:
             self.text_area.insert(tk.END, f"\n")
         elif command_line.split()[0] == "tac":
             if (len(command_line.split())>1):
-                d = f"{self.curDir}/{command_line.split()[1]}"
+                d = f"{script_path[:-7]}/{self.curDir}/{command_line.split()[1]}"
                 if not (os.path.exists(d)):
                     self.text_area.insert(tk.END, f"\nNo such file\n")
+                    self.res = "No such file"
                 else:
                     if (os.path.isfile(d)):
-                        res=""
+                        self.res=""
                         f = open(d)
                         mas = []
                         for line in f:
                             mas.append(line)
+                        print(mas)
                         mas.reverse()
                         for i in mas:
 
                             self.text_area.insert(tk.END, f"\n{i}")
+                            self.res += f"\n{i}"
             else:
                 self.text_area.insert(tk.END, f"\n")
         else:
@@ -162,6 +180,12 @@ class UnixConsoleApp:
 
         # Блокируем дальнейший ввод
         return "break"
+    def get_console_output(self):
+
+        last_line_index = self.text_area.index("end-1c linestart")
+        last_line_text =self. text_area.get(last_line_index, "end-1c")
+
+        return last_line_text
 
     def check_input(self, event):
         """Запрещаем ввод текста до приглашения командной строки"""
@@ -172,7 +196,7 @@ class UnixConsoleApp:
 # Создаем главное окно приложени
 if __name__ == "__main__":
     root = tk.Tk()
-    from pathlib import Path
+
 
     script_path = str(Path( __file__ ).absolute())
 
@@ -182,13 +206,14 @@ if __name__ == "__main__":
     if os.path.exists("Konfig.ini"):
         f=open("Konfig.ini")
     else:
-        f=open(script_path[:-12]+"Konfig.ini")
+        f=open(script_path[:-7]+"Konfig.ini")
     file=f.readline()
 
     with tar.open(file, 'r') as t:
         t.extractall("papka/")
         app = UnixConsoleApp(root,f"papka/{t.getnames()[0]}" )
-        print(app.defDir)
+
+        app.process_command('mv file2.txt file3.txt')
         t.close()
 
     # Запускаем главный цикл приложения

@@ -3,6 +3,7 @@ import unittest
 import tkinter as tk
 from unittest.mock import patch
 import io
+from pathlib import Path
 import os
 import shutil
 from zad1 import UnixConsoleApp
@@ -51,27 +52,28 @@ class TestUnixConsoleApp(unittest.TestCase):
             self.assertIn("No such directory", self.app.res)
 
     @patch('sys.stdout', new_callable=io.StringIO)
-    @patch('os.path.exists', return_value=True)
-    def test_mv_command_move_file(self, mock_stdout, mock_exists):
+    def test_mv_command_move_file(self, mock_stdout):
         """Тестируем команду 'mv' для перемещения файла"""
         with patch('shutil.move') as mock_move:
+            script_path = str(Path(__file__).absolute())
             self.app.process_command('mv pack/file.txt pack/pack2')
-            mock_move.assert_called_once_with('/papka/shape/pack/file.txt', '/papka/shape/pack/pack2')
+            mock_move.assert_called_once_with(f"{script_path[:-12]}/papka/shape/pack/file.txt".replace("\/",'/'), f'{script_path[:-12]}/papka/shape/pack/pack2'.replace("\/",'/'))
 
     @patch('sys.stdout', new_callable=io.StringIO)
     def test_mv_command_rename_file(self, mock_stdout):
         """Тестируем команду 'mv' для переименования файла"""
-        with patch('os.rename') as mock_rename, patch('os.path.exists', return_value=True):
-            self.app.process_command('mv file2.txt file3.txt')
-            mock_rename.assert_called_once_with('/papka/shape/pack/file2.txt', '/papka/shape/pack/file3.txt')
+        with patch('os.rename') as mock_rename:
+            script_path = str(Path(__file__).absolute())
+            self.app.process_command('mv pack/file2.txt file3.txt')
+            mock_rename.assert_called_once_with(f'{script_path[:-12]}/papka/shape/pack/file2.txt'.replace("\/",'/'), f'{script_path[:-12]}/papka/shape/pack/file3.txt'.replace("\/",'/'))
 
     @patch('sys.stdout', new_callable=io.StringIO)
     def test_tac_command_valid_file(self, mock_stdout):
         """Тестируем команду 'tac' с допустимым файлом"""
-        with patch('builtins.open', unittest.mock.mock_open(read_data="2) tut tozhe\n1) tut cho-to napisano")):
-            self.app.process_command('tac pack/file5.txt')
-            output = mock_stdout.getvalue().strip()
-            self.assertIn('\n1) tut cho-to napisano\n2) tut tozhe\n',  self.app.res)
+
+        self.app.process_command('tac pack/file5.txt')
+
+        self.assertIn('\n2) tut tozhe\n1) tut cho-to napisano\n',  self.app.res)
 
     @patch('sys.stdout', new_callable=io.StringIO)
     def test_tac_command_invalid_file(self, mock_stdout):
